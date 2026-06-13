@@ -1,5 +1,11 @@
 # GoDaddy Dynamic DNS for Home Assistant
 
+[![Latest release](https://img.shields.io/github/v/release/bditter/ha-godaddy-dynamic-dns?display_name=tag&sort=semver)](https://github.com/bditter/ha-godaddy-dynamic-dns/releases/latest)
+[![HACS custom repository](https://img.shields.io/badge/HACS-Custom-41BDF5.svg)](https://hacs.xyz/docs/faq/custom_repositories/)
+[![Home Assistant](https://img.shields.io/badge/Home%20Assistant-Custom%20Integration-41BDF5.svg)](https://www.home-assistant.io/)
+[![Release workflow](https://github.com/bditter/ha-godaddy-dynamic-dns/actions/workflows/release.yml/badge.svg)](https://github.com/bditter/ha-godaddy-dynamic-dns/actions/workflows/release.yml)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+
 A Home Assistant custom integration that synchronizes GoDaddy `A` records
 with the public WAN address reported by a Sophos Firewall.
 
