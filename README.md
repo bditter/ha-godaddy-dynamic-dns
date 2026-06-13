@@ -1,0 +1,152 @@
+# GoDaddy Dynamic DNS for Home Assistant
+
+A Home Assistant custom integration that synchronizes GoDaddy `A` records
+with the public WAN address reported by a Sophos Firewall.
+
+## Features
+
+- Reads the WAN IPv4 address through the Sophos XML API.
+- Stores the last observed WAN address.
+- Contacts GoDaddy only after the WAN address changes or an update remains
+  pending.
+- Reads the primary record directly from GoDaddy instead of using local DNS.
+- Updates the primary record and any configured additional records.
+- Provides configurable polling interval and DNS TTL.
+- Supports public certificates, private certificate authorities, and optional
+  TLS verification.
+- Provides an independent ipify-based internet connectivity sensor.
+- Includes manual check and force-update buttons.
+
+## Installation
+
+### HACS custom repository
+
+1. Open HACS.
+2. Add `https://github.com/bditter/ha-godaddy-dynamic-dns` as a custom
+   integration repository.
+3. Install **GoDaddy Dynamic DNS for Home Assistant**.
+4. Restart Home Assistant.
+
+### Manual installation
+
+Copy:
+
+```text
+custom_components/godaddy_dynamic_dns
+```
+
+to:
+
+```text
+/config/custom_components/godaddy_dynamic_dns
+```
+
+Restart Home Assistant, then open:
+
+```text
+Settings > Devices & services > Add integration
+```
+
+Search for **GoDaddy Dynamic DNS for Home Assistant**.
+
+## Configuration
+
+The setup flow requests:
+
+- Sophos Firewall base URL
+- Sophos API username and password
+- WAN interface name
+- TLS verification preference
+- Optional private CA certificate path
+- GoDaddy API URL, key, and secret
+- Target domain
+- Primary record type and name
+- Optional additional records
+- Polling interval
+- DNS TTL
+
+No firewall address, interface, credentials, domain, record name, or additional
+target is preconfigured.
+
+Additional records use one `TYPE,NAME` pair per line:
+
+```text
+A,host-one
+A,host-two
+```
+
+Only IPv4 `A` records are currently supported.
+
+## Private CA certificates
+
+For a firewall certificate issued by a private CA:
+
+1. Export the issuing CA certificate in PEM format.
+2. Upload it to Home Assistant, for example as `/ssl/firewall-ca.pem`.
+3. Keep **Verify firewall TLS certificate** enabled.
+4. Enter `/ssl/firewall-ca.pem` as the firewall CA certificate path.
+
+This trusts the private CA only for this integration's firewall connection.
+
+## Operation
+
+During each polling interval:
+
+1. Read the Sophos WAN address.
+2. Check ipify for the independent **Internet online** sensor.
+3. Compare the WAN address with the integration's stored value.
+4. Stop without contacting GoDaddy when the WAN address is unchanged.
+5. When changed, read the primary record directly from GoDaddy.
+6. Update all configured records when the primary record differs.
+7. Retain a pending change and retry if GoDaddy is unavailable.
+
+**Check now** runs the normal polling flow immediately.
+
+**Force update** writes the current Sophos WAN address to every configured
+record without first reading the primary record from GoDaddy.
+
+## Entities
+
+Sensors:
+
+- WAN IP address
+- Previous WAN IP address
+- GoDaddy A record IP address
+- Last update time
+- Last update result
+- Last IP change time
+- Records updated
+- Total updates performed
+- Public IP source
+
+Binary sensors:
+
+- GoDaddy record in sync
+- Internet online
+- Firewall API available
+- GoDaddy API available
+
+Buttons:
+
+- Check now
+- Force update
+
+## Branding
+
+Local branding files are included under `brand/`. Local custom-integration
+branding requires Home Assistant 2026.3 or newer.
+
+## Security
+
+- Use a dedicated, least-privilege Sophos API account.
+- Keep TLS verification enabled whenever possible.
+- Credentials are redacted from Home Assistant diagnostics.
+- The Sophos XML request is sent in the HTTPS request body rather than the URL.
+
+## Version
+
+Current release: `1.0.0`
+
+## License
+
+[MIT](LICENSE)

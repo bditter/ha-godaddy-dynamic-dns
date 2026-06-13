@@ -1,0 +1,105 @@
+{
+  "title": "GoDaddy Dynamic DNS for Home Assistant",
+  "config": {
+    "step": {
+      "user": {
+        "title": "Set up GoDaddy Dynamic DNS for Home Assistant",
+        "description": "Compares the Sophos WAN interface directly with the primary A record returned by the GoDaddy API. Local DNS is never queried.",
+        "data": {
+          "firewall_base_url": "Sophos firewall base URL",
+          "username": "Firewall API username",
+          "password": "Firewall API password",
+          "firewall_interface": "WAN interface name",
+          "verify_ssl": "Verify firewall TLS certificate",
+          "firewall_ca_path": "Firewall CA certificate path",
+          "godaddy_api_url": "GoDaddy API URL",
+          "api_key": "GoDaddy API key",
+          "api_secret": "GoDaddy API secret",
+          "target_domain": "Target domain",
+          "primary_record_type": "Primary record type",
+          "primary_record_name": "Primary record name",
+          "additional_records": "Additional records",
+          "scan_interval": "Check interval (seconds)",
+          "ttl": "DNS TTL (seconds)"
+        },
+        "data_description": {
+          "additional_records": "Enter one TYPE,NAME pair per line, for example A,host-one.",
+          "primary_record_name": "Enter the host label. Use @ for the root domain.",
+          "verify_ssl": "Keep enabled. For a Sophos-issued certificate, upload its CA and enter the path below.",
+          "firewall_ca_path": "Optional PEM CA file, for example /ssl/sophos-ca.pem."
+        }
+      },
+      "reconfigure": {
+        "title": "Reconfigure GoDaddy Dynamic DNS for Home Assistant",
+        "description": "Update API credentials, endpoints, records, and safety settings.",
+        "data": {
+          "firewall_base_url": "Sophos firewall base URL",
+          "username": "Firewall API username",
+          "password": "Firewall API password",
+          "firewall_interface": "WAN interface name",
+          "verify_ssl": "Verify firewall TLS certificate",
+          "firewall_ca_path": "Firewall CA certificate path",
+          "godaddy_api_url": "GoDaddy API URL",
+          "api_key": "GoDaddy API key",
+          "api_secret": "GoDaddy API secret",
+          "target_domain": "Target domain",
+          "primary_record_type": "Primary record type",
+          "primary_record_name": "Primary record name",
+          "additional_records": "Additional records",
+          "scan_interval": "Check interval (seconds)",
+          "ttl": "DNS TTL (seconds)"
+        }
+      }
+    },
+    "error": {
+      "cannot_connect": "Could not connect to the firewall or GoDaddy API.",
+      "invalid_auth": "GoDaddy rejected the API key or secret.",
+      "invalid_firewall_certificate": "The firewall certificate is not trusted by Home Assistant. Configure the correct public certificate or provide the issuing CA certificate path.",
+      "invalid_records": "The additional record list is invalid. Use one A,NAME pair per line."
+    },
+    "abort": {
+      "already_configured": "This domain is already configured."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Dynamic DNS options",
+        "data": {
+          "additional_records": "Additional records",
+          "scan_interval": "Check interval (seconds)",
+          "ttl": "DNS TTL (seconds)"
+        },
+        "data_description": {
+          "additional_records": "Enter one TYPE,NAME pair per line, for example A,host-one."
+        }
+      }
+    },
+    "error": {
+      "invalid_records": "The additional record list is invalid. Use one A,NAME pair per line."
+    }
+  },
+  "entity": {
+    "sensor": {
+      "wan_ip": { "name": "WAN IP address" },
+      "previous_wan_ip": { "name": "Previous WAN IP address" },
+      "dns_record_ip": { "name": "GoDaddy A record IP address" },
+      "last_update_time": { "name": "Last update time" },
+      "last_update_result": { "name": "Last update result" },
+      "last_ip_change_time": { "name": "Last IP change time" },
+      "records_updated": { "name": "Records updated" },
+      "total_updates_performed": { "name": "Total updates performed" },
+      "public_ip_source": { "name": "Public IP source" }
+    },
+    "binary_sensor": {
+      "dns_in_sync": { "name": "GoDaddy record in sync" },
+      "internet_available": { "name": "Internet online" },
+      "firewall_available": { "name": "Firewall API available" },
+      "godaddy_api_available": { "name": "GoDaddy API available" }
+    },
+    "button": {
+      "check_now": { "name": "Check now" },
+      "force_update": { "name": "Force update" }
+    }
+  }
+}

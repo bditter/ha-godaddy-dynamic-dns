@@ -1,0 +1,24 @@
+name: Release
+
+on:
+  release:
+    types: [published]
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build integration archive
+        run: |
+          cd custom_components/godaddy_dynamic_dns
+          zip -r ../../../godaddy_dynamic_dns.zip .
+
+      - name: Upload integration archive
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release upload "${{ github.event.release.tag_name }}" godaddy_dynamic_dns.zip

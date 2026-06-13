@@ -1,0 +1,12 @@
+{
+  "domain": "godaddy_dynamic_dns",
+  "name": "GoDaddy Dynamic DNS for Home Assistant",
+  "codeowners": ["@bditter"],
+  "config_flow": true,
+  "documentation": "https://github.com/bditter/ha-godaddy-dynamic-dns",
+  "integration_type": "service",
+  "iot_class": "cloud_polling",
+  "issue_tracker": "https://github.com/bditter/ha-godaddy-dynamic-dns/issues",
+  "requirements": [],
+  "version": "1.0.0"
+}
