@@ -16,7 +16,7 @@ jobs:
       - name: Build integration archive
         run: |
           cd custom_components/godaddy_dynamic_dns
-          zip -r ../../../godaddy_dynamic_dns.zip .
+          zip -r ../../godaddy_dynamic_dns.zip .
 
       - name: Upload integration archive
         env:
