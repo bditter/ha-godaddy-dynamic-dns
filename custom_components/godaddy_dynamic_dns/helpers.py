@@ -89,3 +89,19 @@ def all_records(
         *parse_additional_records(additional_records, target_domain),
     ]
     return list(dict.fromkeys(records))
+
+
+def format_record_lines_for_display(value: str, target_domain: str) -> str:
+    """Format stored managed records for the options UI."""
+    try:
+        records = parse_additional_records(value, target_domain)
+        target_domain = _normalize_domain(target_domain)
+    except ValueError:
+        return value
+    lines = []
+    for record in records:
+        if record.domain == target_domain:
+            lines.append(record.name)
+        else:
+            lines.append(f"{record.domain},{record.name}")
+    return "\n".join(lines)

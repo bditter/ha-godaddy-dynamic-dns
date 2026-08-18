@@ -64,13 +64,31 @@
   "options": {
     "step": {
       "init": {
-        "title": "Dynamic DNS options",
+        "title": "Dynamic DNS configuration",
         "data": {
+          "firewall_base_url": "Sophos firewall base URL",
+          "username": "Firewall API username",
+          "password": "New firewall API password",
+          "firewall_interface": "WAN interface name",
+          "verify_ssl": "Verify firewall TLS certificate",
+          "firewall_ca_path": "Firewall CA certificate path",
+          "godaddy_api_url": "GoDaddy API URL",
+          "api_key": "New GoDaddy API key",
+          "api_secret": "New GoDaddy API secret",
+          "target_domain": "Target domain",
+          "primary_record_type": "Primary record type",
+          "primary_record_name": "Primary record name",
           "additional_records": "Records to update",
           "scan_interval": "Check interval (seconds)",
           "ttl": "DNS TTL (seconds)"
         },
         "data_description": {
+          "password": "Leave blank to keep the existing firewall password.",
+          "api_key": "Leave blank to keep the existing GoDaddy API key.",
+          "api_secret": "Leave blank to keep the existing GoDaddy API secret.",
+          "primary_record_name": "Enter the host label. Use @ for the root domain.",
+          "verify_ssl": "Keep enabled. For a Sophos-issued certificate, upload its CA and enter the path below.",
+          "firewall_ca_path": "Optional PEM CA file, for example /ssl/sophos-ca.pem.",
           "additional_records": "Add, edit, or delete one A record per line. Examples: host-one, host-one.example.net, or example.net,host-one."
         }
       }

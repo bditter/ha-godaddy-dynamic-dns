@@ -45,7 +45,7 @@ from .const import (
     DEFAULT_VERIFY_SSL,
     DOMAIN,
 )
-from .helpers import all_records
+from .helpers import all_records, format_record_lines_for_display
 
 def _text_password() -> selector.TextSelector:
     return selector.TextSelector(
@@ -109,6 +109,78 @@ def _data_schema(defaults: dict[str, Any]) -> vol.Schema:
                 vol.Coerce(int), vol.Range(min=600, max=86400)
             ),
         }
+    )
+
+
+def _options_schema(defaults: dict[str, Any]) -> vol.Schema:
+    """Build the existing-entry maintenance schema."""
+    return vol.Schema(
+        {
+            _required(CONF_FIREWALL_BASE_URL, defaults): selector.TextSelector(
+                selector.TextSelectorConfig(type=selector.TextSelectorType.URL)
+            ),
+            _required(CONF_USERNAME, defaults): selector.TextSelector(),
+            vol.Optional(CONF_PASSWORD): _text_password(),
+            _required(CONF_FIREWALL_INTERFACE, defaults): selector.TextSelector(),
+            _required(
+                CONF_VERIFY_SSL, defaults, DEFAULT_VERIFY_SSL
+            ): selector.BooleanSelector(),
+            _optional(CONF_FIREWALL_CA_PATH, defaults): selector.TextSelector(),
+            _required(
+                CONF_GODADDY_API_URL, defaults, DEFAULT_GODADDY_API_URL
+            ): selector.TextSelector(
+                selector.TextSelectorConfig(type=selector.TextSelectorType.URL)
+            ),
+            vol.Optional(CONF_API_KEY): _text_password(),
+            vol.Optional(CONF_API_SECRET): _text_password(),
+            _required(CONF_TARGET_DOMAIN, defaults): selector.TextSelector(),
+            _required(
+                CONF_PRIMARY_RECORD_TYPE, defaults, DEFAULT_PRIMARY_RECORD_TYPE
+            ): selector.SelectSelector(
+                selector.SelectSelectorConfig(options=["A"])
+            ),
+            _required(CONF_PRIMARY_RECORD_NAME, defaults): selector.TextSelector(),
+            _optional(CONF_ADDITIONAL_RECORDS, defaults): selector.TextSelector(
+                selector.TextSelectorConfig(multiline=True)
+            ),
+            _required(
+                CONF_SCAN_INTERVAL, defaults, DEFAULT_SCAN_INTERVAL
+            ): vol.All(vol.Coerce(int), vol.Range(min=60, max=86400)),
+            _required(CONF_TTL, defaults, DEFAULT_TTL): vol.All(
+                vol.Coerce(int), vol.Range(min=600, max=86400)
+            ),
+        }
+    )
+
+
+def _maintenance_data(
+    entry: ConfigEntry, user_input: dict[str, Any]
+) -> tuple[dict[str, Any], dict[str, Any]]:
+    """Split maintenance form input into config data and options."""
+    existing = {**entry.data, **entry.options}
+    merged = {**existing, **user_input}
+    for secret_key in (CONF_PASSWORD, CONF_API_KEY, CONF_API_SECRET):
+        if not user_input.get(secret_key):
+            merged[secret_key] = entry.data[secret_key]
+
+    data_keys = {
+        CONF_FIREWALL_BASE_URL,
+        CONF_USERNAME,
+        CONF_PASSWORD,
+        CONF_FIREWALL_INTERFACE,
+        CONF_VERIFY_SSL,
+        CONF_FIREWALL_CA_PATH,
+        CONF_GODADDY_API_URL,
+        CONF_API_KEY,
+        CONF_API_SECRET,
+        CONF_TARGET_DOMAIN,
+        CONF_PRIMARY_RECORD_TYPE,
+        CONF_PRIMARY_RECORD_NAME,
+    }
+    option_keys = {CONF_ADDITIONAL_RECORDS, CONF_SCAN_INTERVAL, CONF_TTL}
+    return (
+        {key: merged[key] for key in data_keys if key in merged},
+        {key: merged[key] for key in option_keys if key in merged},
     )
 
 
@@ -220,43 +292,39 @@ class DynamicDnsConfigFlow(ConfigFlow, domain=DOMAIN):
 
 
 class DynamicDnsOptionsFlow(OptionsFlowWithReload):
-    """Edit polling and record-list options."""
+    """Edit an existing config entry."""
 
     async def async_step_init(
         self, user_input: dict[str, Any] | None = None
     ) -> ConfigFlowResult:
         errors: dict[str, str] = {}
         if user_input is not None:
+            data, options = _maintenance_data(self.config_entry, user_input)
+            validation_data = {**data, **options}
             try:
-                all_records(
-                    self.config_entry.data[CONF_TARGET_DOMAIN],
-                    self.config_entry.data[CONF_PRIMARY_RECORD_TYPE],
-                    self.config_entry.data[CONF_PRIMARY_RECORD_NAME],
-                    user_input.get(CONF_ADDITIONAL_RECORDS, ""),
-                )
+                await _validate_input(self.hass, validation_data)
+            except DynamicDnsAuthError:
+                errors["base"] = "invalid_auth"
+            except DynamicDnsCertificateError:
+                errors["base"] = "invalid_firewall_certificate"
             except ValueError:
                 errors["base"] = "invalid_records"
+            except DynamicDnsApiError:
+                errors["base"] = "cannot_connect"
             else:
-                return self.async_create_entry(data=user_input)
+                self.hass.config_entries.async_update_entry(
+                    self.config_entry,
+                    data=data,
+                    options=options,
+                    title=data[CONF_TARGET_DOMAIN],
+                )
+                return self.async_create_entry(data=options)
 
         defaults = {**self.config_entry.data, **self.config_entry.options}
-        schema = vol.Schema(
-            {
-                vol.Optional(
-                    CONF_ADDITIONAL_RECORDS,
-                    default=defaults.get(CONF_ADDITIONAL_RECORDS, ""),
-                ): selector.TextSelector(
-                    selector.TextSelectorConfig(multiline=True)
-                ),
-                vol.Required(
-                    CONF_SCAN_INTERVAL,
-                    default=defaults.get(CONF_SCAN_INTERVAL, DEFAULT_SCAN_INTERVAL),
-                ): vol.All(vol.Coerce(int), vol.Range(min=60, max=86400)),
-                vol.Required(
-                    CONF_TTL, default=defaults.get(CONF_TTL, DEFAULT_TTL)
-                ): vol.All(vol.Coerce(int), vol.Range(min=600, max=86400)),
-            }
+        defaults[CONF_ADDITIONAL_RECORDS] = format_record_lines_for_display(
+            defaults.get(CONF_ADDITIONAL_RECORDS, ""),
+            defaults[CONF_TARGET_DOMAIN],
         )
         return self.async_show_form(
-            step_id="init", data_schema=schema, errors=errors
+            step_id="init", data_schema=_options_schema(defaults), errors=errors
         )

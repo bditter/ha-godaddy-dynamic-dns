@@ -27,6 +27,7 @@ def _load_module(name: str):
 
 RecordSpec = _load_module("models").RecordSpec
 all_records = _load_module("helpers").all_records
+format_record_lines_for_display = _load_module("helpers").format_record_lines_for_display
 
 
 def test_records_accept_plain_names_and_explicit_domains() -> None:
@@ -62,3 +63,14 @@ def test_records_reject_non_a_records() -> None:
     """Only A records are supported."""
     with pytest.raises(ValueError):
         all_records("example.com", "A", "home", "CNAME,example.net,alias")
+
+
+def test_legacy_records_are_formatted_without_a_prefix() -> None:
+    """Existing A-prefixed records are shown without the implied type."""
+    assert (
+        format_record_lines_for_display(
+            "A,firewall\nA,lab.net,espforge",
+            "example.com",
+        )
+        == "firewall\nlab.net,espforge"
+    )
