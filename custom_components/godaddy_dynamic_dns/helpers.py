@@ -24,9 +24,34 @@ def _normalize_record_name(value: str) -> str:
 def _split_fqdn(value: str) -> tuple[str, str]:
     """Split a simple FQDN into a GoDaddy zone and record name."""
     labels = value.strip().strip(".").lower().split(".")
-    if len(labels) < 3 or any(not label for label in labels):
-        raise ValueError("FQDN must include a host and domain")
+    if len(labels) < 2 or any(not label for label in labels):
+        raise ValueError("FQDN must include a domain")
+    if len(labels) == 2:
+        return ".".join(labels), "@"
     return ".".join(labels[-2:]), ".".join(labels[:-2])
+
+
+def _fqdn(record: RecordSpec) -> str:
+    """Return a simple FQDN for a record."""
+    if record.name == "@":
+        return record.domain
+    return f"{record.name}.{record.domain}"
+
+
+def parse_fqdn_records(value: str) -> list[RecordSpec]:
+    """Parse managed FQDN records."""
+    records: list[RecordSpec] = []
+    for line_number, raw_line in enumerate(value.splitlines(), start=1):
+        line = raw_line.strip()
+        if not line:
+            continue
+        if "," in line:
+            raise ValueError(f"Line {line_number} must be a full hostname")
+        domain, name = _split_fqdn(line)
+        records.append(RecordSpec(domain, "A", name))
+    if not records:
+        raise ValueError("At least one record is required")
+    return list(dict.fromkeys(records))
 
 
 def parse_additional_records(value: str, target_domain: str) -> list[RecordSpec]:
@@ -91,17 +116,41 @@ def all_records(
     return list(dict.fromkeys(records))
 
 
-def format_record_lines_for_display(value: str, target_domain: str) -> str:
-    """Format stored managed records for the options UI."""
+def records_from_config(
+    target_domain: str,
+    primary_type: str,
+    primary_name: str,
+    additional_records: str,
+) -> list[RecordSpec]:
+    """Return managed records from new FQDN config or legacy config."""
     try:
-        records = parse_additional_records(value, target_domain)
-        target_domain = _normalize_domain(target_domain)
+        return parse_fqdn_records(additional_records)
     except ValueError:
-        return value
-    lines = []
-    for record in records:
-        if record.domain == target_domain:
-            lines.append(record.name)
-        else:
-            lines.append(f"{record.domain},{record.name}")
-    return "\n".join(lines)
+        return all_records(
+            target_domain,
+            primary_type,
+            primary_name,
+            additional_records,
+        )
+
+
+def format_config_records_for_display(
+    target_domain: str,
+    primary_type: str,
+    primary_name: str,
+    additional_records: str,
+) -> str:
+    """Format new or legacy managed records as FQDN lines."""
+    try:
+        records = parse_fqdn_records(additional_records)
+    except ValueError:
+        try:
+            records = all_records(
+                target_domain,
+                primary_type,
+                primary_name,
+                additional_records,
+            )
+        except ValueError:
+            return additional_records
+    return "\n".join(_fqdn(record) for record in records)

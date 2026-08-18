@@ -28,6 +28,7 @@ from .const import (
     CONF_ADDITIONAL_RECORDS,
     CONF_API_KEY,
     CONF_API_SECRET,
+    CONF_CONFIG_SCHEMA_VERSION,
     CONF_FIREWALL_BASE_URL,
     CONF_FIREWALL_CA_PATH,
     CONF_FIREWALL_INTERFACE,
@@ -44,11 +45,9 @@ from .const import (
     DEFAULT_TTL,
     DEFAULT_VERIFY_SSL,
     DOMAIN,
+    CONFIG_SCHEMA_FQDN_RECORDS,
 )
-from .helpers import (
-    all_records,
-    format_record_lines_for_display,
-)
+from .helpers import format_config_records_for_display, parse_fqdn_records
 
 
 def _text_password() -> selector.TextSelector:
@@ -96,14 +95,7 @@ def _data_schema(defaults: dict[str, Any]) -> vol.Schema:
             ),
             _required(CONF_API_KEY, defaults): _text_password(),
             _required(CONF_API_SECRET, defaults): _text_password(),
-            _required(CONF_TARGET_DOMAIN, defaults): selector.TextSelector(),
-            _required(
-                CONF_PRIMARY_RECORD_TYPE, defaults, DEFAULT_PRIMARY_RECORD_TYPE
-            ): selector.SelectSelector(
-                selector.SelectSelectorConfig(options=["A"])
-            ),
-            _required(CONF_PRIMARY_RECORD_NAME, defaults): selector.TextSelector(),
-            _optional(CONF_ADDITIONAL_RECORDS, defaults): selector.TextSelector(
+            _required(CONF_ADDITIONAL_RECORDS, defaults): selector.TextSelector(
                 selector.TextSelectorConfig(multiline=True)
             ),
             _required(
@@ -137,14 +129,7 @@ def _options_schema(defaults: dict[str, Any]) -> vol.Schema:
             ),
             _required(CONF_API_KEY, defaults): _text_password(),
             _required(CONF_API_SECRET, defaults): _text_password(),
-            _required(CONF_TARGET_DOMAIN, defaults): selector.TextSelector(),
-            _required(
-                CONF_PRIMARY_RECORD_TYPE, defaults, DEFAULT_PRIMARY_RECORD_TYPE
-            ): selector.SelectSelector(
-                selector.SelectSelectorConfig(options=["A"])
-            ),
-            _required(CONF_PRIMARY_RECORD_NAME, defaults): selector.TextSelector(),
-            _optional(CONF_ADDITIONAL_RECORDS, defaults): selector.TextSelector(
+            _required(CONF_ADDITIONAL_RECORDS, defaults): selector.TextSelector(
                 selector.TextSelectorConfig(multiline=True)
             ),
             _required(
@@ -163,8 +148,10 @@ def _maintenance_data(
     """Split maintenance form input into config data and options."""
     existing = {**entry.data, **entry.options}
     merged = {**existing, **user_input}
+    merged[CONF_CONFIG_SCHEMA_VERSION] = CONFIG_SCHEMA_FQDN_RECORDS
 
     data_keys = {
+        CONF_CONFIG_SCHEMA_VERSION,
         CONF_FIREWALL_BASE_URL,
         CONF_USERNAME,
         CONF_PASSWORD,
@@ -174,9 +161,6 @@ def _maintenance_data(
         CONF_GODADDY_API_URL,
         CONF_API_KEY,
         CONF_API_SECRET,
-        CONF_TARGET_DOMAIN,
-        CONF_PRIMARY_RECORD_TYPE,
-        CONF_PRIMARY_RECORD_NAME,
     }
     option_keys = {CONF_ADDITIONAL_RECORDS, CONF_SCAN_INTERVAL, CONF_TTL}
     return (
@@ -185,14 +169,18 @@ def _maintenance_data(
     )
 
 
+def _first_record_title(records_value: str) -> str:
+    """Return a title from the first configured FQDN."""
+    record = parse_fqdn_records(records_value)[0]
+    if record.name == "@":
+        return record.domain
+    return f"{record.name}.{record.domain}"
+
+
 async def _validate_input(hass: HomeAssistant, data: dict[str, Any]) -> None:
     """Validate the firewall, record syntax, and GoDaddy credentials."""
-    all_records(
-        data[CONF_TARGET_DOMAIN],
-        data[CONF_PRIMARY_RECORD_TYPE],
-        data[CONF_PRIMARY_RECORD_NAME],
-        data.get(CONF_ADDITIONAL_RECORDS, ""),
-    )
+    records = parse_fqdn_records(data.get(CONF_ADDITIONAL_RECORDS, ""))
+    primary_record = records[0]
     api = DynamicDnsApi(
         async_get_clientsession(hass),
         firewall_base_url=data[CONF_FIREWALL_BASE_URL],
@@ -208,9 +196,9 @@ async def _validate_input(hass: HomeAssistant, data: dict[str, Any]) -> None:
     firewall_result, godaddy_result = await asyncio.gather(
         api.async_get_firewall_ip(),
         api.async_get_record(
-            data[CONF_TARGET_DOMAIN],
-            data[CONF_PRIMARY_RECORD_TYPE],
-            data[CONF_PRIMARY_RECORD_NAME],
+            primary_record.domain,
+            primary_record.record_type,
+            primary_record.name,
         ),
         return_exceptions=True,
     )
@@ -246,11 +234,18 @@ class DynamicDnsConfigFlow(ConfigFlow, domain=DOMAIN):
                 errors["base"] = "cannot_connect"
             else:
                 await self.async_set_unique_id(
-                    user_input[CONF_TARGET_DOMAIN].lower()
+                    _first_record_title(user_input[CONF_ADDITIONAL_RECORDS]).lower()
                 )
                 self._abort_if_unique_id_configured()
                 return self.async_create_entry(
-                    title=user_input[CONF_TARGET_DOMAIN], data=user_input
+                    title=_first_record_title(user_input[CONF_ADDITIONAL_RECORDS]),
+                    data={
+                        **user_input,
+                        CONF_CONFIG_SCHEMA_VERSION: CONFIG_SCHEMA_FQDN_RECORDS,
+                        CONF_TARGET_DOMAIN: "",
+                        CONF_PRIMARY_RECORD_TYPE: DEFAULT_PRIMARY_RECORD_TYPE,
+                        CONF_PRIMARY_RECORD_NAME: "",
+                    },
                 )
         return self.async_show_form(
             step_id="user",
@@ -277,9 +272,17 @@ class DynamicDnsConfigFlow(ConfigFlow, domain=DOMAIN):
             else:
                 return self.async_update_reload_and_abort(
                     entry,
-                    unique_id=user_input[CONF_TARGET_DOMAIN].lower(),
-                    data=user_input,
-                    title=user_input[CONF_TARGET_DOMAIN],
+                    unique_id=_first_record_title(
+                        user_input[CONF_ADDITIONAL_RECORDS]
+                    ).lower(),
+                    data={
+                        **user_input,
+                        CONF_CONFIG_SCHEMA_VERSION: CONFIG_SCHEMA_FQDN_RECORDS,
+                        CONF_TARGET_DOMAIN: "",
+                        CONF_PRIMARY_RECORD_TYPE: DEFAULT_PRIMARY_RECORD_TYPE,
+                        CONF_PRIMARY_RECORD_NAME: "",
+                    },
+                    title=_first_record_title(user_input[CONF_ADDITIONAL_RECORDS]),
                 )
         return self.async_show_form(
             step_id="reconfigure",
@@ -317,14 +320,16 @@ class DynamicDnsOptionsFlow(OptionsFlowWithReload):
                     self.config_entry,
                     data=data,
                     options=options,
-                    title=data[CONF_TARGET_DOMAIN],
+                    title=_first_record_title(validation_data[CONF_ADDITIONAL_RECORDS]),
                 )
                 return self.async_create_entry(data=options)
 
         defaults = {**self.config_entry.data, **self.config_entry.options}
-        defaults[CONF_ADDITIONAL_RECORDS] = format_record_lines_for_display(
+        defaults[CONF_ADDITIONAL_RECORDS] = format_config_records_for_display(
+            defaults.get(CONF_TARGET_DOMAIN, ""),
+            defaults.get(CONF_PRIMARY_RECORD_TYPE, DEFAULT_PRIMARY_RECORD_TYPE),
+            defaults.get(CONF_PRIMARY_RECORD_NAME, ""),
             defaults.get(CONF_ADDITIONAL_RECORDS, ""),
-            defaults[CONF_TARGET_DOMAIN],
         )
         return self.async_show_form(
             step_id="init", data_schema=_options_schema(defaults), errors=errors

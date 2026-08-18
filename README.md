@@ -15,8 +15,9 @@ with the public WAN address reported by a Sophos Firewall.
 - Stores the last observed WAN address.
 - Contacts GoDaddy only after the WAN address changes or an update remains
   pending.
-- Reads the primary record directly from GoDaddy instead of using local DNS.
-- Updates the primary record and any configured additional records.
+- Reads the first configured record directly from GoDaddy instead of using
+  local DNS.
+- Updates every configured record.
 - Supports managed update records across multiple GoDaddy domains.
 - Provides configurable polling interval and DNS TTL.
 - Supports public certificates, private certificate authorities, and optional
@@ -66,49 +67,33 @@ The setup flow requests:
 - TLS verification preference
 - Optional private CA certificate path
 - GoDaddy API URL, key, and secret
-- Target domain
-- Primary record type and name
-- Optional records to update
+- Records to update
 - Polling interval
 - DNS TTL
 
-No firewall address, interface, credentials, domain, record name, or additional
-target is preconfigured.
+No firewall address, interface, credentials, or record target is preconfigured.
 
 After setup, open the integration's **Configure** dialog to change any of the
 same settings without deleting the service. The stored firewall and GoDaddy
 secret values are shown in password fields so they can be reviewed or edited.
 
-Managed records can be added, edited, or deleted in **Configure**. Since only
-`A` records are supported, the record type is implied. Use one record per line.
-
-For records in the target domain:
-
-```text
-host-one
-host-two
-```
-
-For ordinary fully qualified records:
+Managed records can be added, edited, or deleted in **Configure**. Enter one
+full hostname per line. Since only `A` records are supported, the record type
+is implied.
 
 ```text
-host-one.example.net
+plex.example.net
+firewall.example.net
+espforge.lab.example
+ai.lab.example
 ```
 
-For explicit GoDaddy zone control, use:
+The first hostname in the list is the GoDaddy comparison anchor. If the WAN IP
+changes and that first record does not match the new WAN IP, all configured
+records are updated.
 
-```text
-example.net,host-one
-```
-
-For example, to update `espforge.ditter-lab.net`:
-
-```text
-ditter-lab.net,espforge
-```
-
-Only IPv4 `A` records are currently supported. Existing entries that include
-`A,` still work for backward compatibility.
+Only IPv4 `A` records are currently supported. Existing installations are
+migrated from the old target-domain layout to full hostnames automatically.
 
 ## Private CA certificates
 
@@ -129,8 +114,8 @@ During each polling interval:
 2. Check ipify for the independent **Internet online** sensor.
 3. Compare the WAN address with the integration's stored value.
 4. Stop without contacting GoDaddy when the WAN address is unchanged.
-5. When changed, read the primary record directly from GoDaddy.
-6. Update all configured records when the primary record differs.
+5. When changed, read the first configured record directly from GoDaddy.
+6. Update all configured records when the first configured record differs.
 7. Retain a pending change and retry if GoDaddy is unavailable.
 
 **Check now** runs the normal polling flow immediately.
@@ -178,7 +163,7 @@ branding requires Home Assistant 2026.3 or newer.
 
 ## Version
 
-Current release: `1.2.2`
+Current release: `1.3.0`
 
 ## License
 

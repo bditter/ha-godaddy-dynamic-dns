@@ -11,16 +11,48 @@ from .api import DynamicDnsApi
 from .const import (
     CONF_API_KEY,
     CONF_API_SECRET,
+    CONF_ADDITIONAL_RECORDS,
+    CONF_CONFIG_SCHEMA_VERSION,
     CONF_FIREWALL_BASE_URL,
     CONF_FIREWALL_CA_PATH,
     CONF_FIREWALL_INTERFACE,
     CONF_GODADDY_API_URL,
     CONF_VERIFY_SSL,
+    CONFIG_SCHEMA_FQDN_RECORDS,
     PLATFORMS,
 )
 from .coordinator import DynamicDnsCoordinator
+from .helpers import format_config_records_for_display
 
 type DynamicDnsConfigEntry = ConfigEntry[DynamicDnsCoordinator]
+
+
+async def async_migrate_entry(
+    hass: HomeAssistant, entry: ConfigEntry
+) -> bool:
+    """Migrate legacy target-domain configuration to FQDN record lines."""
+    if entry.data.get(CONF_CONFIG_SCHEMA_VERSION) == CONFIG_SCHEMA_FQDN_RECORDS:
+        return True
+
+    records = format_config_records_for_display(
+        entry.data.get("target_domain", ""),
+        entry.data.get("primary_record_type", "A"),
+        entry.data.get("primary_record_name", ""),
+        entry.options.get(
+            CONF_ADDITIONAL_RECORDS,
+            entry.data.get(CONF_ADDITIONAL_RECORDS, ""),
+        ),
+    )
+    data = {
+        **entry.data,
+        CONF_CONFIG_SCHEMA_VERSION: CONFIG_SCHEMA_FQDN_RECORDS,
+    }
+    options = {
+        **entry.options,
+        CONF_ADDITIONAL_RECORDS: records,
+    }
+    hass.config_entries.async_update_entry(entry, data=data, options=options)
+    return True
 
 
 async def async_setup_entry(

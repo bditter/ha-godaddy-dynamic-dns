@@ -26,51 +26,53 @@ def _load_module(name: str):
 
 
 RecordSpec = _load_module("models").RecordSpec
-all_records = _load_module("helpers").all_records
-format_record_lines_for_display = _load_module("helpers").format_record_lines_for_display
+helpers = _load_module("helpers")
+all_records = helpers.all_records
+format_config_records_for_display = helpers.format_config_records_for_display
+parse_fqdn_records = helpers.parse_fqdn_records
+records_from_config = helpers.records_from_config
 
 
-def test_records_accept_plain_names_and_explicit_domains() -> None:
-    """Plain names use the target domain; DOMAIN,NAME uses that zone."""
-    assert all_records(
-        "example.com",
-        "A",
-        "home",
-        "firewall\nlab.net,espforge",
+def test_fqdn_records_are_the_source_of_truth() -> None:
+    """FQDN lines are parsed into GoDaddy domain and record name pairs."""
+    assert parse_fqdn_records(
+        "example.com\nplex.example.com\nespforge.lab.net\nai.lab.net"
     ) == [
-        RecordSpec("example.com", "A", "home"),
-        RecordSpec("example.com", "A", "firewall"),
+        RecordSpec("example.com", "A", "@"),
+        RecordSpec("example.com", "A", "plex"),
         RecordSpec("lab.net", "A", "espforge"),
+        RecordSpec("lab.net", "A", "ai"),
     ]
 
 
-def test_records_accept_fqdn_and_legacy_type_prefix() -> None:
-    """Fully qualified and old A-prefixed records are backward compatible."""
-    assert all_records(
+def test_legacy_records_still_parse_for_migration() -> None:
+    """Legacy records are still accepted when stored config has not migrated."""
+    assert records_from_config(
         "example.com",
         "A",
         "home",
-        "host.lab.net\nA,legacy\nA,lab.net,typed",
+        "A,legacy\nlab.net,espforge",
     ) == [
         RecordSpec("example.com", "A", "home"),
-        RecordSpec("lab.net", "A", "host"),
         RecordSpec("example.com", "A", "legacy"),
-        RecordSpec("lab.net", "A", "typed"),
+        RecordSpec("lab.net", "A", "espforge"),
     ]
 
 
 def test_records_reject_non_a_records() -> None:
     """Only A records are supported."""
     with pytest.raises(ValueError):
-        all_records("example.com", "A", "home", "CNAME,example.net,alias")
+        parse_fqdn_records("not-a-full-hostname")
 
 
-def test_legacy_records_are_formatted_without_a_prefix() -> None:
-    """Existing A-prefixed records are shown without the implied type."""
+def test_legacy_records_are_formatted_as_fqdns() -> None:
+    """Existing target-domain configs display as full hostnames."""
     assert (
-        format_record_lines_for_display(
-            "A,firewall\nA,lab.net,espforge",
+        format_config_records_for_display(
             "example.com",
+            "A",
+            "home",
+            "A,firewall\nA,lab.net,espforge",
         )
-        == "firewall\nlab.net,espforge"
+        == "home.example.com\nfirewall.example.com\nespforge.lab.net"
     )

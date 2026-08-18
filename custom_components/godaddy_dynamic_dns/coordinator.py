@@ -15,10 +15,7 @@ from homeassistant.util import dt as dt_util
 from .api import DynamicDnsApi, DynamicDnsApiError, DynamicDnsAuthError
 from .const import (
     CONF_ADDITIONAL_RECORDS,
-    CONF_PRIMARY_RECORD_NAME,
-    CONF_PRIMARY_RECORD_TYPE,
     CONF_SCAN_INTERVAL,
-    CONF_TARGET_DOMAIN,
     CONF_TTL,
     DEFAULT_SCAN_INTERVAL,
     DEFAULT_TTL,
@@ -26,7 +23,7 @@ from .const import (
     STORE_KEY_PREFIX,
     STORE_VERSION,
 )
-from .helpers import all_records
+from .helpers import records_from_config
 from .models import DynamicDnsState, RecordSpec
 
 _LOGGER = logging.getLogger(__name__)
@@ -77,8 +74,6 @@ class DynamicDnsCoordinator(DataUpdateCoordinator[DynamicDnsState]):
         async with self._lock:
             now = dt_util.utcnow()
             self.state.last_check_time = now
-            domain = self.entry.data[CONF_TARGET_DOMAIN]
-            primary_name = self.entry.data[CONF_PRIMARY_RECORD_NAME]
 
             state_changed = False
             internet_task = asyncio.create_task(self.api.async_check_internet())
@@ -114,11 +109,12 @@ class DynamicDnsCoordinator(DataUpdateCoordinator[DynamicDnsState]):
             elif self.state.pending_ip != selected_ip:
                 self.state.last_update_result = "WAN IP unchanged"
             else:
+                primary_record = self._records()[0]
                 try:
                     godaddy_addresses = await self.api.async_get_record_addresses(
-                        domain,
-                        self.entry.data[CONF_PRIMARY_RECORD_TYPE],
-                        primary_name,
+                        primary_record.domain,
+                        primary_record.record_type,
+                        primary_record.name,
                     )
                 except DynamicDnsApiError:
                     self.state.godaddy_api_available = False
@@ -189,10 +185,10 @@ class DynamicDnsCoordinator(DataUpdateCoordinator[DynamicDnsState]):
         return True
 
     def _records(self) -> list[RecordSpec]:
-        return all_records(
-            self.entry.data[CONF_TARGET_DOMAIN],
-            self.entry.data[CONF_PRIMARY_RECORD_TYPE],
-            self.entry.data[CONF_PRIMARY_RECORD_NAME],
+        return records_from_config(
+            self.entry.data.get("target_domain", ""),
+            self.entry.data.get("primary_record_type", "A"),
+            self.entry.data.get("primary_record_name", ""),
             self.entry.options.get(
                 CONF_ADDITIONAL_RECORDS,
                 self.entry.data.get(CONF_ADDITIONAL_RECORDS, ""),

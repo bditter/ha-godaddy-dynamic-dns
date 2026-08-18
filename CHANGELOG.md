@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.3.0
+
+- Replace target-domain and primary-record UI with a single FQDN managed-record
+  list.
+- Use the first configured hostname as the GoDaddy comparison anchor.
+- Migrate existing entries to FQDN record lines on startup.
+
 ## 1.2.2
 
 - Display stored firewall password, GoDaddy API key, and GoDaddy API secret
