@@ -115,6 +115,7 @@ def _data_schema(defaults: dict[str, Any]) -> vol.Schema:
 async def _validate_input(hass: HomeAssistant, data: dict[str, Any]) -> None:
     """Validate the firewall, record syntax, and GoDaddy credentials."""
     all_records(
+        data[CONF_TARGET_DOMAIN],
         data[CONF_PRIMARY_RECORD_TYPE],
         data[CONF_PRIMARY_RECORD_NAME],
         data.get(CONF_ADDITIONAL_RECORDS, ""),
@@ -228,9 +229,10 @@ class DynamicDnsOptionsFlow(OptionsFlowWithReload):
         if user_input is not None:
             try:
                 all_records(
+                    self.config_entry.data[CONF_TARGET_DOMAIN],
                     self.config_entry.data[CONF_PRIMARY_RECORD_TYPE],
                     self.config_entry.data[CONF_PRIMARY_RECORD_NAME],
-                    user_input[CONF_ADDITIONAL_RECORDS],
+                    user_input.get(CONF_ADDITIONAL_RECORDS, ""),
                 )
             except ValueError:
                 errors["base"] = "invalid_records"

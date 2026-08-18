@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.1.0
+
+- Support managed update records from multiple GoDaddy domains.
+- Allow record lines in `NAME`, `FQDN`, or `DOMAIN,NAME` format.
+- Keep backward compatibility with existing `A,NAME` and `A,DOMAIN,NAME` entries.
+- Clarify that records can be added, edited, or deleted from the options form.
+
 ## 1.0.0
 
 - Initial public release.

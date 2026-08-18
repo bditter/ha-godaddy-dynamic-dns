@@ -17,6 +17,7 @@ with the public WAN address reported by a Sophos Firewall.
   pending.
 - Reads the primary record directly from GoDaddy instead of using local DNS.
 - Updates the primary record and any configured additional records.
+- Supports managed update records across multiple GoDaddy domains.
 - Provides configurable polling interval and DNS TTL.
 - Supports public certificates, private certificate authorities, and optional
   TLS verification.
@@ -67,21 +68,44 @@ The setup flow requests:
 - GoDaddy API URL, key, and secret
 - Target domain
 - Primary record type and name
-- Optional additional records
+- Optional records to update
 - Polling interval
 - DNS TTL
 
 No firewall address, interface, credentials, domain, record name, or additional
 target is preconfigured.
 
-Additional records use one `TYPE,NAME` pair per line:
+Managed records can be added, edited, or deleted in the options form. Since
+only `A` records are supported, the record type is implied. Use one record per
+line.
+
+For records in the target domain:
 
 ```text
-A,host-one
-A,host-two
+host-one
+host-two
 ```
 
-Only IPv4 `A` records are currently supported.
+For ordinary fully qualified records:
+
+```text
+host-one.example.net
+```
+
+For explicit GoDaddy zone control, use:
+
+```text
+example.net,host-one
+```
+
+For example, to update `espforge.ditter-lab.net`:
+
+```text
+ditter-lab.net,espforge
+```
+
+Only IPv4 `A` records are currently supported. Existing entries that include
+`A,` still work for backward compatibility.
 
 ## Private CA certificates
 
@@ -151,7 +175,7 @@ branding requires Home Assistant 2026.3 or newer.
 
 ## Version
 
-Current release: `1.0.0`
+Current release: `1.1.0`
 
 ## License
 

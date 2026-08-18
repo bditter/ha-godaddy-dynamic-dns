@@ -158,7 +158,7 @@ class DynamicDnsCoordinator(DataUpdateCoordinator[DynamicDnsState]):
         try:
             for record in records:
                 await self.api.async_replace_record(
-                    self.entry.data[CONF_TARGET_DOMAIN],
+                    record.domain,
                     record.record_type,
                     record.name,
                     ip_address,
@@ -190,6 +190,7 @@ class DynamicDnsCoordinator(DataUpdateCoordinator[DynamicDnsState]):
 
     def _records(self) -> list[RecordSpec]:
         return all_records(
+            self.entry.data[CONF_TARGET_DOMAIN],
             self.entry.data[CONF_PRIMARY_RECORD_TYPE],
             self.entry.data[CONF_PRIMARY_RECORD_NAME],
             self.entry.options.get(

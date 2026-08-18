@@ -11,6 +11,7 @@ from typing import Any
 class RecordSpec:
     """A DNS record managed by the integration."""
 
+    domain: str
     record_type: str
     name: str
 

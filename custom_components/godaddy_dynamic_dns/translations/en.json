@@ -18,12 +18,12 @@
           "target_domain": "Target domain",
           "primary_record_type": "Primary record type",
           "primary_record_name": "Primary record name",
-          "additional_records": "Additional records",
+          "additional_records": "Records to update",
           "scan_interval": "Check interval (seconds)",
           "ttl": "DNS TTL (seconds)"
         },
         "data_description": {
-          "additional_records": "Enter one TYPE,NAME pair per line, for example A,host-one.",
+          "additional_records": "Add, edit, or delete one A record per line. Use NAME for the target domain, FQDN for common fully qualified records, or DOMAIN,NAME for explicit GoDaddy zones.",
           "primary_record_name": "Enter the host label. Use @ for the root domain.",
           "verify_ssl": "Keep enabled. For a Sophos-issued certificate, upload its CA and enter the path below.",
           "firewall_ca_path": "Optional PEM CA file, for example /ssl/sophos-ca.pem."
@@ -45,7 +45,7 @@
           "target_domain": "Target domain",
           "primary_record_type": "Primary record type",
           "primary_record_name": "Primary record name",
-          "additional_records": "Additional records",
+          "additional_records": "Records to update",
           "scan_interval": "Check interval (seconds)",
           "ttl": "DNS TTL (seconds)"
         }
@@ -55,7 +55,7 @@
       "cannot_connect": "Could not connect to the firewall or GoDaddy API.",
       "invalid_auth": "GoDaddy rejected the API key or secret.",
       "invalid_firewall_certificate": "The firewall certificate is not trusted by Home Assistant. Configure the correct public certificate or provide the issuing CA certificate path.",
-      "invalid_records": "The additional record list is invalid. Use one A,NAME pair per line."
+      "invalid_records": "The record list is invalid. Use one NAME, FQDN, or DOMAIN,NAME entry per line."
     },
     "abort": {
       "already_configured": "This domain is already configured."
@@ -66,17 +66,17 @@
       "init": {
         "title": "Dynamic DNS options",
         "data": {
-          "additional_records": "Additional records",
+          "additional_records": "Records to update",
           "scan_interval": "Check interval (seconds)",
           "ttl": "DNS TTL (seconds)"
         },
         "data_description": {
-          "additional_records": "Enter one TYPE,NAME pair per line, for example A,host-one."
+          "additional_records": "Add, edit, or delete one A record per line. Examples: host-one, host-one.example.net, or example.net,host-one."
         }
       }
     },
     "error": {
-      "invalid_records": "The additional record list is invalid. Use one A,NAME pair per line."
+      "invalid_records": "The record list is invalid. Use one NAME, FQDN, or DOMAIN,NAME entry per line."
     }
   },
   "entity": {
