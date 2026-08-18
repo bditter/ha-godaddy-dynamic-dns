@@ -46,10 +46,8 @@ from .const import (
     DOMAIN,
 )
 from .helpers import (
-    SECRET_UNCHANGED,
     all_records,
     format_record_lines_for_display,
-    secret_or_existing,
 )
 
 
@@ -126,7 +124,7 @@ def _options_schema(defaults: dict[str, Any]) -> vol.Schema:
                 selector.TextSelectorConfig(type=selector.TextSelectorType.URL)
             ),
             _required(CONF_USERNAME, defaults): selector.TextSelector(),
-            vol.Required(CONF_PASSWORD, default=SECRET_UNCHANGED): _text_password(),
+            _required(CONF_PASSWORD, defaults): _text_password(),
             _required(CONF_FIREWALL_INTERFACE, defaults): selector.TextSelector(),
             _required(
                 CONF_VERIFY_SSL, defaults, DEFAULT_VERIFY_SSL
@@ -137,8 +135,8 @@ def _options_schema(defaults: dict[str, Any]) -> vol.Schema:
             ): selector.TextSelector(
                 selector.TextSelectorConfig(type=selector.TextSelectorType.URL)
             ),
-            vol.Required(CONF_API_KEY, default=SECRET_UNCHANGED): _text_password(),
-            vol.Required(CONF_API_SECRET, default=SECRET_UNCHANGED): _text_password(),
+            _required(CONF_API_KEY, defaults): _text_password(),
+            _required(CONF_API_SECRET, defaults): _text_password(),
             _required(CONF_TARGET_DOMAIN, defaults): selector.TextSelector(),
             _required(
                 CONF_PRIMARY_RECORD_TYPE, defaults, DEFAULT_PRIMARY_RECORD_TYPE
@@ -165,10 +163,6 @@ def _maintenance_data(
     """Split maintenance form input into config data and options."""
     existing = {**entry.data, **entry.options}
     merged = {**existing, **user_input}
-    for secret_key in (CONF_PASSWORD, CONF_API_KEY, CONF_API_SECRET):
-        merged[secret_key] = secret_or_existing(
-            user_input.get(secret_key), entry.data[secret_key]
-        )
 
     data_keys = {
         CONF_FIREWALL_BASE_URL,

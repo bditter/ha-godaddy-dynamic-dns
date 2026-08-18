@@ -28,8 +28,6 @@ def _load_module(name: str):
 RecordSpec = _load_module("models").RecordSpec
 all_records = _load_module("helpers").all_records
 format_record_lines_for_display = _load_module("helpers").format_record_lines_for_display
-secret_or_existing = _load_module("helpers").secret_or_existing
-SECRET_UNCHANGED = _load_module("helpers").SECRET_UNCHANGED
 
 
 def test_records_accept_plain_names_and_explicit_domains() -> None:
@@ -76,10 +74,3 @@ def test_legacy_records_are_formatted_without_a_prefix() -> None:
         )
         == "firewall\nlab.net,espforge"
     )
-
-
-def test_secret_marker_keeps_existing_values() -> None:
-    """Configure dialog secret markers preserve stored secrets."""
-    assert secret_or_existing(SECRET_UNCHANGED, "old-secret") == "old-secret"
-    assert secret_or_existing("", "old-secret") == "old-secret"
-    assert secret_or_existing("new-secret", "old-secret") == "new-secret"

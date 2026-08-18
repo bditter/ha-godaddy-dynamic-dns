@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.2.2
+
+- Display stored firewall password, GoDaddy API key, and GoDaddy API secret
+  values in the existing service Configure dialog.
+- Remove the keep-existing secret marker behavior.
+
 ## 1.2.1
 
 - Ensure firewall password, GoDaddy API key, and GoDaddy API secret replacement
