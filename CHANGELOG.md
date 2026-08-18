@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.2.1
+
+- Ensure firewall password, GoDaddy API key, and GoDaddy API secret replacement
+  fields are visible in the existing service Configure dialog.
+- Keep stored secrets unchanged when the visible replacement marker is submitted.
+
 ## 1.2.0
 
 - Make the existing service Configure dialog a full maintenance form.

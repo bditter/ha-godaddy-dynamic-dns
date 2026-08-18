@@ -77,8 +77,9 @@ target is preconfigured.
 
 After setup, open the integration's **Configure** dialog to change any of the
 same settings without deleting the service. Existing firewall and GoDaddy
-secret fields are intentionally left blank in that form; enter a new value only
-when you want to replace the stored secret.
+secret values are not shown; their replacement fields use a keep-existing
+marker. Leave that marker alone to keep the stored value, or replace it with a
+new secret.
 
 Managed records can be added, edited, or deleted in **Configure**. Since only
 `A` records are supported, the record type is implied. Use one record per line.
@@ -179,7 +180,7 @@ branding requires Home Assistant 2026.3 or newer.
 
 ## Version
 
-Current release: `1.2.0`
+Current release: `1.2.1`
 
 ## License
 

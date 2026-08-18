@@ -4,6 +4,15 @@ from __future__ import annotations
 
 from .models import RecordSpec
 
+SECRET_UNCHANGED = "__KEEP_EXISTING_SECRET__"
+
+
+def secret_or_existing(submitted: str | None, existing: str) -> str:
+    """Return the submitted secret unless the form asked to keep the old one."""
+    if not submitted or submitted == SECRET_UNCHANGED:
+        return existing
+    return submitted
+
 
 def _normalize_domain(value: str) -> str:
     """Normalize a DNS zone name."""

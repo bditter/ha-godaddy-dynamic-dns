@@ -45,7 +45,13 @@ from .const import (
     DEFAULT_VERIFY_SSL,
     DOMAIN,
 )
-from .helpers import all_records, format_record_lines_for_display
+from .helpers import (
+    SECRET_UNCHANGED,
+    all_records,
+    format_record_lines_for_display,
+    secret_or_existing,
+)
+
 
 def _text_password() -> selector.TextSelector:
     return selector.TextSelector(
@@ -120,7 +126,7 @@ def _options_schema(defaults: dict[str, Any]) -> vol.Schema:
                 selector.TextSelectorConfig(type=selector.TextSelectorType.URL)
             ),
             _required(CONF_USERNAME, defaults): selector.TextSelector(),
-            vol.Optional(CONF_PASSWORD): _text_password(),
+            vol.Required(CONF_PASSWORD, default=SECRET_UNCHANGED): _text_password(),
             _required(CONF_FIREWALL_INTERFACE, defaults): selector.TextSelector(),
             _required(
                 CONF_VERIFY_SSL, defaults, DEFAULT_VERIFY_SSL
@@ -131,8 +137,8 @@ def _options_schema(defaults: dict[str, Any]) -> vol.Schema:
             ): selector.TextSelector(
                 selector.TextSelectorConfig(type=selector.TextSelectorType.URL)
             ),
-            vol.Optional(CONF_API_KEY): _text_password(),
-            vol.Optional(CONF_API_SECRET): _text_password(),
+            vol.Required(CONF_API_KEY, default=SECRET_UNCHANGED): _text_password(),
+            vol.Required(CONF_API_SECRET, default=SECRET_UNCHANGED): _text_password(),
             _required(CONF_TARGET_DOMAIN, defaults): selector.TextSelector(),
             _required(
                 CONF_PRIMARY_RECORD_TYPE, defaults, DEFAULT_PRIMARY_RECORD_TYPE
@@ -160,8 +166,9 @@ def _maintenance_data(
     existing = {**entry.data, **entry.options}
     merged = {**existing, **user_input}
     for secret_key in (CONF_PASSWORD, CONF_API_KEY, CONF_API_SECRET):
-        if not user_input.get(secret_key):
-            merged[secret_key] = entry.data[secret_key]
+        merged[secret_key] = secret_or_existing(
+            user_input.get(secret_key), entry.data[secret_key]
+        )
 
     data_keys = {
         CONF_FIREWALL_BASE_URL,
